@@ -33,7 +33,7 @@ def codes(df: _pd.DataFrame, input: _Union[str, list], output: _Union[str, list]
         for input_column, output_column in zip(input, output):
             df[output_column] = _extract.codes(df[input_column].astype(str).tolist())
 
-    return df
+    # return df
 
 
 def custom(df: _pd.DataFrame, input: _Union[str, list], output: _Union[str, list], parameters: dict = {}) -> _pd.DataFrame:

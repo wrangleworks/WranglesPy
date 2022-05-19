@@ -6,6 +6,7 @@ import yaml as _yaml
 import logging as _logging
 from typing import Union as _Union
 import os as _os
+import threading
 
 from . import pipeline_wrangles as _pipeline_wrangles
 from . import connectors as _connectors
@@ -125,21 +126,46 @@ def _execute_wrangles(df, wrangles_list) -> _pandas.DataFrame:
     """
     for step in wrangles_list:
         for wrangle, params in step.items():
-            _logging.info(f": Wrangling :: {wrangle} :: {params.get('input', 'None')} >> {params.get('output', 'Dynamic')}")
 
             if wrangle.split('.')[0] == 'pandas':
+                _logging.info(f": Wrangling :: {wrangle} :: {params.get('input', 'None')} >> {params.get('output', 'Dynamic')}")
                 # Execute a pandas method
                 # TODO: disallow any hidden methods
-                df = getattr(df, wrangle.split('.')[1])(**params.get('parameters', {}))
+                if 'input' in params.keys():
+                    df[params['output']] = getattr(df[params['input']], wrangle.split('.')[1])(**params.get('parameters', {}))
+                else:
+                    df = getattr(df, wrangle.split('.')[1])(**params.get('parameters', {}))
+
+            elif wrangle == 'async':
+                threads = []
+                for step_async in params:
+                    for wrangle_async, params_async in step_async.items():
+                        _logging.info(f": Wrangling :: {wrangle} :: {params_async.get('input', 'None')} >> {params_async.get('output', 'Dynamic')}")
+
+                        
+                        # Get the requested function from the pipeline_wrangles module
+                        obj = _pipeline_wrangles
+                        for element in wrangle_async.split('.'):
+                            obj = getattr(obj, element)
+
+                        params_async['df'] = df
+                    
+                        threads.append(threading.Thread(target=obj, kwargs=params_async))
+
+                for thread in threads: thread.start()
+                for thread in threads: thread.join()
 
             else:
+                _logging.info(f": Wrangling :: {wrangle} :: {params.get('input', 'None')} >> {params.get('output', 'Dynamic')}")
+
                 # Get the requested function from the pipeline_wrangles module
                 obj = _pipeline_wrangles
                 for element in wrangle.split('.'):
                     obj = getattr(obj, element)
 
                 # Execute the requested function and return the value
-                df = obj(df, **params)
+                # df = obj(df, **params)
+                obj(df, **params)
 
     return df
 
