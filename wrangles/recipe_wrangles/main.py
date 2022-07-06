@@ -278,3 +278,17 @@ def maths(df: _pd.DataFrame, input: str, output: str) -> _pd.DataFrame:
     """
     df[output] = _ne.evaluate(input, df.to_dict(orient='list'))
     return df
+
+
+def expression(df: _pd.DataFrame, input: str, output: str) ->_pd.DataFrame:
+    """
+    Can this be made totally safe??
+    """
+    code = compile(input, "<string>", "eval")
+
+    results = []
+    for row in df.to_dict(orient='records'):
+        results.append(eval(code, {"__builtins__": {}}, row))
+
+    df[output] = results
+    return df
