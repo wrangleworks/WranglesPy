@@ -284,6 +284,9 @@ def expression(df: _pd.DataFrame, input: str, output: str) ->_pd.DataFrame:
     """
     Can this be made totally safe??
     """
+    if not isinstance(input, str) or '_' in input:
+        raise ValueError('Invalid input for expression. Note: _ (underscore) is not allowed')
+
     code = compile(input, "<string>", "eval")
 
     results = []
